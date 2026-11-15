@@ -1,0 +1,25 @@
+# docker compose up --build   ->  API on http://localhost:4000, MongoDB data in the "mongo-data" volume
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo: { condition: service_healthy }
+    ports: ["4000:4000"]
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/nutrio
+      # Change this! Generate with: openssl rand -hex 32
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in your shell or a .env file}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      SEED_DEMO: ${SEED_DEMO:-0}
+volumes:
+  mongo-data:
